@@ -8,95 +8,97 @@
 # AGPL (http:www.gnu.org/licenses/agpl-3.0.txt) for more details.
 
 defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.Optimal.Process do
-    alias NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.Optimal.Process, as: Process
+  @moduledoc false
 
-    use GenServer
+  alias NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.Optimal.Process, as: Process
 
-    defstruct neighbors: MapSet.new, parent: nil, children: MapSet.new,
-              function: nil
+  use GenServer
 
-    def new do
-        {:ok, pid} = GenServer.start(Process, nil)
-        pid
-    end
+  defstruct neighbors: MapSet.new(), parent: nil, children: MapSet.new(), function: nil
 
-    def init(_), do: {:ok, %Process{}}
+  def new do
+    {:ok, pid} = GenServer.start(Process, nil)
+    pid
+  end
 
-    def handle_cast(:stop, _), do: {:stop, :normal, :ok}
+  def init(_), do: {:ok, %Process{}}
 
-    def handle_cast({:set_neighbors, neighbors}, state), do:
-        {:noreply, %Process{ state | neighbors: MapSet.new(neighbors) }}
+  def handle_cast(:stop, _), do: {:stop, :normal, :ok}
 
-    def handle_cast({:set_function, f}, state), do:
-        {:noreply, %Process{ state | function: f }}
+  def handle_cast({:set_neighbors, neighbors}, state),
+    do: {:noreply, %Process{state | neighbors: MapSet.new(neighbors)}}
 
-    def handle_cast(:start, state) do
-        nparent = self
-        k = Enum.random(state.neighbors)
-        send(k, {:go, %{ sender: self, visited: MapSet.new([self]) }})
-        nchildren = MapSet.new([k])
+  def handle_cast({:set_function, f}, state), do: {:noreply, %Process{state | function: f}}
 
-        {:noreply, %Process{ state | parent: nparent,
-                                     children: nchildren }}
-    end
+  def handle_cast(:start, state) do
+    nparent = self
+    k = Enum.random(state.neighbors)
+    send(k, {:go, %{sender: self, visited: MapSet.new([self])}})
+    nchildren = MapSet.new([k])
 
-    def handle_info({:go, data}, state) do
-        nparent = data[:sender]
+    {:noreply, %Process{state | parent: nparent, children: nchildren}}
+  end
 
-        nchildren = if MapSet.subset?(state.neighbors,
-                                      data[:visited]) do
-                        send(data[:sender], {:back, %{ sender: self,
-                                                       visited: MapSet.union(data[:visited], MapSet.new([self])) }})
-                        MapSet.new
-                    else
-                        k = Enum.random(MapSet.difference(state.neighbors, data[:visited]))
-                        send(k, {:go, %{ sender: self,
-                                         visited: MapSet.union(data[:visited], MapSet.new([self])) }})
-                        MapSet.new([k])
-                    end
+  def handle_info({:go, data}, state) do
+    nparent = data[:sender]
 
-        {:noreply, %Process{ state | parent: nparent,
-                                     children: nchildren }}
-    end
+    nchildren =
+      if MapSet.subset?(
+           state.neighbors,
+           data[:visited]
+         ) do
+        send(
+          data[:sender],
+          {:back, %{sender: self, visited: MapSet.union(data[:visited], MapSet.new([self]))}}
+        )
 
-    def handle_info({:back, data}, state) do
-        nchildren = if MapSet.subset?(state.neighbors,
-                                      data[:visited]) do
-                        if state.parent == self do
-                            state.function.()
-                        else
-                            send(state.parent, {:back, %{ sender: self,
-                                                          visited: data[:visited] }})
-                        end
+        MapSet.new()
+      else
+        k = Enum.random(MapSet.difference(state.neighbors, data[:visited]))
+        send(k, {:go, %{sender: self, visited: MapSet.union(data[:visited], MapSet.new([self]))}})
+        MapSet.new([k])
+      end
 
-                        state.children
-                    else
-                        k = Enum.random(MapSet.difference(state.neighbors, data[:visited]))
-                        send(k, {:go, %{ sender: self,
-                                         visited: data[:visited] }})
+    {:noreply, %Process{state | parent: nparent, children: nchildren}}
+  end
 
-                        MapSet.union(state.children, MapSet.new([k]))
-                    end
+  def handle_info({:back, data}, state) do
+    nchildren =
+      if MapSet.subset?(
+           state.neighbors,
+           data[:visited]
+         ) do
+        if state.parent == self do
+          state.function.()
+        else
+          send(state.parent, {:back, %{sender: self, visited: data[:visited]}})
+        end
 
-        {:noreply, %Process{ state | children: nchildren }}
-    end
+        state.children
+      else
+        k = Enum.random(MapSet.difference(state.neighbors, data[:visited]))
+        send(k, {:go, %{sender: self, visited: data[:visited]}})
 
-    def start(pid), do: GenServer.cast(pid, :start)
+        MapSet.union(state.children, MapSet.new([k]))
+      end
 
-    def stop(pid), do: GenServer.cast(pid, :stop)
+    {:noreply, %Process{state | children: nchildren}}
+  end
 
-    def set_neighbors(pid, neighbors), do: GenServer.cast(pid, {:set_neighbors, MapSet.new(neighbors)})
+  def start(pid), do: GenServer.cast(pid, :start)
 
-    def set_function(pid, f), do: GenServer.cast(pid, {:set_function, f})
+  def stop(pid), do: GenServer.cast(pid, :stop)
 
-    def handle_call(:get_parent, _from, state), do:
-        {:reply, state.parent, state}
+  def set_neighbors(pid, neighbors),
+    do: GenServer.cast(pid, {:set_neighbors, MapSet.new(neighbors)})
 
-    def handle_call(:get_children, _from, state), do:
-        {:reply, state.children, state}
+  def set_function(pid, f), do: GenServer.cast(pid, {:set_function, f})
 
-    def get_parent(pid), do: GenServer.call(pid, :get_parent)
+  def handle_call(:get_parent, _from, state), do: {:reply, state.parent, state}
 
-    def get_children(pid), do: GenServer.call(pid, :get_children)
+  def handle_call(:get_children, _from, state), do: {:reply, state.children, state}
 
+  def get_parent(pid), do: GenServer.call(pid, :get_parent)
+
+  def get_children(pid), do: GenServer.call(pid, :get_children)
 end

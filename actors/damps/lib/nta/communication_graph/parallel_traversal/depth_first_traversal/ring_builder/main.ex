@@ -7,10 +7,10 @@
 # MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. Please refer to the
 # AGPL (http:www.gnu.org/licenses/agpl-3.0.txt) for more details.
 
-defmodule NTA.CommunicationGraph.ParallelTraversal.BreadthFirstSpanningTree.NoCentralizedControl.Main do
+defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.RingBuilder.Main do
   @moduledoc false
 
-  alias NTA.CommunicationGraph.ParallelTraversal.BreadthFirstSpanningTree.NoCentralizedControl.Process,
+  alias NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.RingBuilder.Process,
     as: MainProcess
 
   defmodule Manager do
@@ -66,14 +66,14 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.BreadthFirstSpanningTree.NoCe
     def handle_info(:print, state) do
       names = &Map.get(state.labels, &1, :no)
 
-      for {k, v} <- state.labels do
-        IO.puts("Node: #{v}")
-        IO.puts("Level: #{MainProcess.get_level(k)}")
-        IO.puts("Parent: #{names.(MainProcess.get_parent(k))}")
-        children = for ch <- MainProcess.get_children(k), do: names.(ch)
-        if Enum.count(children) != 0, do: IO.puts("Children: #{inspect(children)}")
-        IO.puts("")
-      end
+      #  for {k, v} <- state.labels do
+      # IO.puts("Node: #{v}")
+      #  IO.puts("Parent: #{names.(MainProcess.get_parent(k))}")
+      #  IO.puts("Succ: #{names.(MainProcess.get_succ(k))}")
+      #   IO.puts("")
+      # end
+
+      MainProcess.start_token_walk(Enum.at(Map.keys(state.labels), 0))
 
       send(self, :stop)
 

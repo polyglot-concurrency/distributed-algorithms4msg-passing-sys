@@ -8,21 +8,20 @@
 # AGPL (http:www.gnu.org/licenses/agpl-3.0.txt) for more details.
 
 defmodule NTA.CommunicationGraph.Learning.Main do
-    alias NTA.CommunicationGraph.Learning.Process, as: MainProcess
+  @moduledoc false
 
-    def run do
+  alias NTA.CommunicationGraph.Learning.Process, as: MainProcess
 
-        p1 = MainProcess.new
-        p2 = MainProcess.new
-        p3 = MainProcess.new
-        p4 = MainProcess.new
+  def run do
+    p1 = MainProcess.new()
+    p2 = MainProcess.new()
+    p3 = MainProcess.new()
+    p4 = MainProcess.new()
 
-        MainProcess.set_neighbors(p1, [p2, p3])
+    MainProcess.set_neighbors(p1, [p2, p3])
 
-        MainProcess.set_neighbors(p2, [p3, p4])
+    MainProcess.set_neighbors(p2, [p3, p4])
 
-        MainProcess.start(p1)
-
-    end
-
+    MainProcess.start(p1)
+  end
 end
