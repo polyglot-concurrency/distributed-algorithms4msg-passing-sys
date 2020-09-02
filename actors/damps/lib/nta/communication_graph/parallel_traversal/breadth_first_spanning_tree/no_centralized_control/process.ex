@@ -38,7 +38,7 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.BreadthFirstSpanningTree.NoCe
 
   # The distinguished process p_a is the only process which receives the external message START()
   def handle_cast(:start, state) do
-    send(self, {:go, %{level: -1, sender: self}})
+    send(self(), {:go, %{level: -1, sender: self()}})
     {:noreply, state}
   end
 
@@ -56,14 +56,14 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.BreadthFirstSpanningTree.NoCe
       )
 
     if nexpexted_msg == 0 do
-      send(data[:sender], {:back, :yes, %{level: new_level, sender: self}})
+      send(data[:sender], {:back, :yes, %{level: new_level, sender: self()}})
     else
       for id <-
             MapSet.difference(
               state.neighbors,
               MapSet.new([data[:sender]])
             ),
-          do: send(id, {:go, %{level: data[:level] + 1, sender: self}})
+          do: send(id, {:go, %{level: data[:level] + 1, sender: self()}})
     end
 
     %Process{
@@ -85,7 +85,7 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.BreadthFirstSpanningTree.NoCe
          go_common(data, state, state.level)
 
        true ->
-         send(data[:sender], {:back, :no, %{level: data[:level] + 1, sender: self}})
+         send(data[:sender], {:back, :no, %{level: data[:level] + 1, sender: self()}})
          state
      end}
   end
@@ -102,8 +102,8 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.BreadthFirstSpanningTree.NoCe
       nexpexted_msg = state.expexted_msg - 1
 
       if nexpexted_msg == 0 do
-        if state.parent != self do
-          send(state.parent, {:back, :yes, %{level: state.level, sender: self}})
+        if state.parent != self() do
+          send(state.parent, {:back, :yes, %{level: state.level, sender: self()}})
         else
           state.function.()
         end

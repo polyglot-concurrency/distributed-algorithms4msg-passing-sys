@@ -36,9 +36,9 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.RootedSpanningTree.Process do
 
   # The distinguished process p_a is the only process which receives the external message START()
   def handle_cast(:start, state) do
-    for id <- state.neighbors, do: send(id, {:go, %{sender: self}})
+    for id <- state.neighbors, do: send(id, {:go, %{sender: self()}})
 
-    {:noreply, %Process{state | parent: self, expexted_msg: MapSet.size(state.neighbors)}}
+    {:noreply, %Process{state | parent: self(), expexted_msg: MapSet.size(state.neighbors)}}
   end
 
   def handle_cast({:set_neighbors, neighbors}, state),
@@ -51,14 +51,14 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.RootedSpanningTree.Process do
       nexpexted_msg = MapSet.size(state.neighbors) - 1
 
       if nexpexted_msg == 0 do
-        send(data[:sender], {:back, %{sender: self, val_set: [{self, state.value}]}})
+        send(data[:sender], {:back, %{sender: self(), val_set: [{self(), state.value}]}})
       else
         for id <-
               MapSet.difference(
                 state.neighbors,
                 MapSet.new([data[:sender]])
               ),
-            do: send(id, {:go, %{sender: self}})
+            do: send(id, {:go, %{sender: self()}})
       end
 
       {:noreply,
@@ -90,11 +90,11 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.RootedSpanningTree.Process do
       end
 
     if nstate.expexted_msg == 0 do
-      nval_set = nstate.val_sets ++ [{self, state.value}]
+      nval_set = nstate.val_sets ++ [{self(), state.value}]
       pr = state.parent
 
-      if pr != self do
-        send(pr, {:back, %{sender: self, val_set: nval_set}})
+      if pr != self() do
+        send(pr, {:back, %{sender: self(), val_set: nval_set}})
         # Partial result
       else
         state.function.(nval_set)

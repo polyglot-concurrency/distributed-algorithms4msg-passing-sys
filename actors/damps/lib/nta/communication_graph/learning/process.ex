@@ -28,7 +28,7 @@ defmodule NTA.CommunicationGraph.Learning.Process do
 
   def handle_cast(:start, state) do
     if not state.part do
-      for id <- state.neighbors, do: send(id, {:position, self, state.neighbors})
+      for id <- state.neighbors, do: send(id, {:position, self(), state.neighbors})
 
       {:noreply, %Process{state | part: true}}
     else
@@ -41,20 +41,20 @@ defmodule NTA.CommunicationGraph.Learning.Process do
   def handle_cast({:set_neighbors, neighbors}, _) do
     {:noreply,
      %Process{
-       proc_known: MapSet.new([self]),
+       proc_known: MapSet.new([self()]),
        neighbors: neighbors,
        channels_known:
          MapSet.new(
            Enum.map(
              neighbors,
-             &{self, &1}
+             &{self(), &1}
            )
          )
      }}
   end
 
   def handle_info({:position, id, neighbors}, state) do
-    if not state.part, do: start(self)
+    if not state.part, do: start(self())
 
     if not MapSet.member?(state.proc_known, id) do
       nproc = MapSet.put(state.proc_known, id)

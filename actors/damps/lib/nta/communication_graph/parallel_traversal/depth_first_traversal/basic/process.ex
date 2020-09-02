@@ -36,12 +36,12 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.Basic.Pro
 
   # The distinguished process p_a is the only process which receives the external message START()
   def handle_cast(:start, state) do
-    nparent = self
+    nparent = self()
     nchildren = MapSet.new()
     nvisited = MapSet.new()
 
     k = Enum.random(state.neighbors)
-    send(k, {:go, %{sender: self}})
+    send(k, {:go, %{sender: self()}})
 
     {:noreply, %Process{state | parent: nparent, children: nchildren, visited: nvisited}}
   end
@@ -53,15 +53,15 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.Basic.Pro
       nvisited = MapSet.new([data[:sender]])
 
       if nvisited === state.neighbors do
-        send(data[:sender], {:back, :yes, %{sender: self}})
+        send(data[:sender], {:back, :yes, %{sender: self()}})
       else
         k = Enum.random(MapSet.difference(state.neighbors, nvisited))
-        send(k, {:go, %{sender: self}})
+        send(k, {:go, %{sender: self()}})
       end
 
       {:noreply, %Process{state | parent: nparent, children: nchildren, visited: nvisited}}
     else
-      send(data[:sender], {:back, :no, %{sender: self}})
+      send(data[:sender], {:back, :no, %{sender: self()}})
       {:noreply, state}
     end
   end
@@ -84,14 +84,14 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.Basic.Pro
       )
 
     if nvisited === state.neighbors do
-      if state.parent == self do
+      if state.parent == self() do
         state.function.()
       else
-        send(state.parent, {:back, :yes, %{sender: self}})
+        send(state.parent, {:back, :yes, %{sender: self()}})
       end
     else
       k = Enum.random(MapSet.difference(state.neighbors, nvisited))
-      send(k, {:go, %{sender: self}})
+      send(k, {:go, %{sender: self()}})
     end
 
     {:noreply, %Process{state | children: nchildren, visited: nvisited}}

@@ -31,9 +31,9 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.Optimal.P
   def handle_cast({:set_function, f}, state), do: {:noreply, %Process{state | function: f}}
 
   def handle_cast(:start, state) do
-    nparent = self
+    nparent = self()
     k = Enum.random(state.neighbors)
-    send(k, {:go, %{sender: self, visited: MapSet.new([self])}})
+    send(k, {:go, %{sender: self(), visited: MapSet.new([self()])}})
     nchildren = MapSet.new([k])
 
     {:noreply, %Process{state | parent: nparent, children: nchildren}}
@@ -49,13 +49,18 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.Optimal.P
          ) do
         send(
           data[:sender],
-          {:back, %{sender: self, visited: MapSet.union(data[:visited], MapSet.new([self]))}}
+          {:back, %{sender: self(), visited: MapSet.union(data[:visited], MapSet.new([self()]))}}
         )
 
         MapSet.new()
       else
         k = Enum.random(MapSet.difference(state.neighbors, data[:visited]))
-        send(k, {:go, %{sender: self, visited: MapSet.union(data[:visited], MapSet.new([self]))}})
+
+        send(
+          k,
+          {:go, %{sender: self(), visited: MapSet.union(data[:visited], MapSet.new([self()]))}}
+        )
+
         MapSet.new([k])
       end
 
@@ -68,16 +73,16 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.Optimal.P
            state.neighbors,
            data[:visited]
          ) do
-        if state.parent == self do
+        if state.parent == self() do
           state.function.()
         else
-          send(state.parent, {:back, %{sender: self, visited: data[:visited]}})
+          send(state.parent, {:back, %{sender: self(), visited: data[:visited]}})
         end
 
         state.children
       else
         k = Enum.random(MapSet.difference(state.neighbors, data[:visited]))
-        send(k, {:go, %{sender: self, visited: data[:visited]}})
+        send(k, {:go, %{sender: self(), visited: data[:visited]}})
 
         MapSet.union(state.children, MapSet.new([k]))
       end

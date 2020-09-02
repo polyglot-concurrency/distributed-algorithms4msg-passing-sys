@@ -38,17 +38,17 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.RingBuild
   def handle_cast({:set_function, f}, state), do: {:noreply, %Process{state | function: f}}
 
   def handle_cast(:start, state) do
-    nparent = self
+    nparent = self()
     k = Enum.random(state.neighbors)
-    send(k, {:go, %{sender: self, visited: MapSet.new([self]), last: self}})
+    send(k, {:go, %{sender: self(), visited: MapSet.new([self()]), last: self()}})
     nfirst = k
 
     {:noreply, %Process{state | parent: nparent, first: nfirst}}
   end
 
   def handle_cast(:walk, state) do
-    send(self, {:token, %{sender: self}})
-    {:noreply, %Process{state | init: self}}
+    send(self(), {:token, %{sender: self()}})
+    {:noreply, %Process{state | init: self()}}
   end
 
   def handle_info({:go, data}, state) do
@@ -63,7 +63,11 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.RingBuild
         send(
           data[:sender],
           {:back,
-           %{sender: self, visited: MapSet.union(data[:visited], MapSet.new([self])), last: self}}
+           %{
+             sender: self(),
+             visited: MapSet.union(data[:visited], MapSet.new([self()])),
+             last: self()
+           }}
         )
 
         Map.put(state.routing, data[:sender], data[:sender])
@@ -73,7 +77,11 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.RingBuild
         send(
           k,
           {:go,
-           %{sender: self, visited: MapSet.union(data[:visited], MapSet.new([self])), last: self}}
+           %{
+             sender: self(),
+             visited: MapSet.union(data[:visited], MapSet.new([self()])),
+             last: self()
+           }}
         )
 
         Map.put(state.routing, k, data[:sender])
@@ -83,13 +91,13 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.RingBuild
   end
 
   def handle_info({:token, data}, state) do
-    IO.puts("pid: #{inspect(self)}")
+    IO.puts("pid: #{inspect(self())}")
     IO.puts("Routing: #{inspect(state.routing)}")
 
     ndest =
-      if data[:dest] == self do
+      if data[:dest] == self() do
         # use the token!
-        IO.puts("Token doing: #{inspect(self)}")
+        IO.puts("Token doing: #{inspect(self())}")
         state.succ
       else
         data[:dest]
@@ -98,7 +106,7 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.RingBuild
     k = state.routing[data[:sender]]
 
     if state.init != k do
-      send(k, {:token, %{sender: self, dest: ndest}})
+      send(k, {:token, %{sender: self(), dest: ndest}})
     end
 
     {:noreply, state}
@@ -115,16 +123,20 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.RingBuild
            state.neighbors,
            data[:visited]
          ) do
-        if state.parent == self do
-          send(self, :finished)
+        if state.parent == self() do
+          send(self(), :finished)
           {data[:last], Map.put(state.routing, state.first, data[:sender])}
         else
-          send(state.parent, {:back, %{sender: self, visited: data[:visited], last: data[:last]}})
+          send(
+            state.parent,
+            {:back, %{sender: self(), visited: data[:visited], last: data[:last]}}
+          )
+
           {state.succ, Map.put(state.routing, state.parent, data[:sender])}
         end
       else
         k = Enum.random(MapSet.difference(state.neighbors, data[:visited]))
-        send(k, {:go, %{sender: self, visited: data[:visited], last: data[:last]}})
+        send(k, {:go, %{sender: self(), visited: data[:visited], last: data[:last]}})
 
         {state.succ, Map.put(state.routing, k, data[:sender])}
       end

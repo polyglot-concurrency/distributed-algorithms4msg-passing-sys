@@ -39,12 +39,12 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.BreadthFirstSpanningTree.Cent
 
   # The distinguished process p_a is the only process which receives the external message START()
   def handle_cast(:start, state) do
-    nparent = self
+    nparent = self()
     nchildren = MapSet.new()
     ndistance = 0
     nto_send = state.neighbors
 
-    for k <- nto_send, do: send(k, {:go, %{d: 0, sender: self}})
+    for k <- nto_send, do: send(k, {:go, %{d: 0, sender: self()}})
 
     {:noreply,
      %Process{
@@ -71,9 +71,9 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.BreadthFirstSpanningTree.Cent
            )
 
          if MapSet.size(nto_send) == 0 do
-           send(data[:sender], {:back, :stop, %{sender: self}})
+           send(data[:sender], {:back, :stop, %{sender: self()}})
          else
-           send(data[:sender], {:back, :continue, %{sender: self}})
+           send(data[:sender], {:back, :continue, %{sender: self()}})
          end
 
          %Process{
@@ -85,14 +85,14 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.BreadthFirstSpanningTree.Cent
          }
 
        state.parent == data[:sender] ->
-         for k <- state.to_send, do: send(k, {:go, %{d: state.distance, sender: self}})
+         for k <- state.to_send, do: send(k, {:go, %{d: state.distance, sender: self()}})
 
          nwaiting_from = state.to_send
 
          %Process{state | waiting_from: nwaiting_from}
 
        true ->
-         send(data[:sender], {:back, :no, %{sender: self}})
+         send(data[:sender], {:back, :no, %{sender: self()}})
          state
      end}
   end
@@ -127,21 +127,21 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.BreadthFirstSpanningTree.Cent
     {:noreply,
      cond do
        MapSet.size(nto_send) == 0 ->
-         if state.parent == self do
+         if state.parent == self() do
            state.function.()
          else
-           send(state.parent, {:back, :stop, %{sender: self}})
+           send(state.parent, {:back, :stop, %{sender: self()}})
          end
 
          %Process{state | children: nchildren, waiting_from: nwaiting_from, to_send: nto_send}
 
        MapSet.size(nwaiting_from) == 0 ->
          nnwaiting_from =
-           if state.parent == self do
-             for k <- nto_send, do: send(k, {:go, %{d: state.distance, sender: self}})
+           if state.parent == self() do
+             for k <- nto_send, do: send(k, {:go, %{d: state.distance, sender: self()}})
              nto_send
            else
-             send(state.parent, {:back, :continue, %{sender: self}})
+             send(state.parent, {:back, :continue, %{sender: self()}})
              nwaiting_from
            end
 

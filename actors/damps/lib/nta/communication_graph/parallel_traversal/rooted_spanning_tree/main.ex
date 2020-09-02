@@ -31,7 +31,7 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.RootedSpanningTree.Main do
     MainProcess.set_neighbors(f, [i, j, c, k, g])
     MainProcess.set_neighbors(g, [k, f])
 
-    this = self
+    this = self()
 
     MainProcess.set_convergecast_function(
       a,

@@ -46,7 +46,7 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.RingBuild
 
       labels = %{a => :a, b => :b, c => :c, i => :i, j => :j, k => :k, f => :f, g => :g}
 
-      this = self
+      this = self()
       MainProcess.set_function(a, fn -> send(this, :print) end)
 
       {:ok, %Manager{labels: labels}}
@@ -64,7 +64,7 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.RingBuild
     end
 
     def handle_info(:print, state) do
-      names = &Map.get(state.labels, &1, :no)
+      _names = &Map.get(state.labels, &1, :no)
 
       #  for {k, v} <- state.labels do
       # IO.puts("Node: #{v}")
@@ -75,7 +75,7 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.RingBuild
 
       MainProcess.start_token_walk(Enum.at(Map.keys(state.labels), 0))
 
-      send(self, :stop)
+      send(self(), :stop)
 
       {:noreply, state}
     end

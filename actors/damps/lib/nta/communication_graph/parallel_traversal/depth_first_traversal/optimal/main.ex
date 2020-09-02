@@ -46,7 +46,7 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.Optimal.M
 
       labels = %{a => :a, b => :b, c => :c, i => :i, j => :j, k => :k, f => :f, g => :g}
 
-      this = self
+      this = self()
       MainProcess.set_function(a, fn -> send(this, :print) end)
 
       {:ok, %Manager{labels: labels}}
@@ -74,7 +74,7 @@ defmodule NTA.CommunicationGraph.ParallelTraversal.DepthFirstTraversal.Optimal.M
         IO.puts("")
       end
 
-      send(self, :stop)
+      send(self(), :stop)
 
       {:noreply, state}
     end
